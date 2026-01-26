@@ -29,6 +29,7 @@ func TestTimeStampString(t *testing.T) {
 
 func TestNewDataLayer(t *testing.T) {
 	testDB := NewDataLayer()
+	go testDB.StartDataLayer()
 	timeStamp, err := testDB.Get()
 
 	if err != nil {
@@ -48,6 +49,7 @@ func TestLocalDBSetAndGet(t *testing.T) {
 	}
 
 	testDB := NewDataLayer()
+	go testDB.StartDataLayer()
 
 	err := testDB.Set(&testTimeStamp)
 

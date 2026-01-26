@@ -27,6 +27,8 @@ func (t *TimeStamp) String() string {
 type DataLayer interface {
 	Set(t *TimeStamp) error
 	Get() (TimeStamp, error)
+	StartDataLayer()
+	DBIsInitialized() bool
 }
 
 // NewDataLayer is a function that helps safely initialize our db with using a currently implemented DB solution.
@@ -34,33 +36,87 @@ func NewDataLayer() DataLayer {
 	t := time.Time{}
 	db := LocalDB{
 		timeStamp: &t,
+		reads:     make(chan readOp),
+		writes:    make(chan writeOp),
 	}
 	return &db
+}
+
+type readOp struct {
+	resp chan time.Time
+}
+type writeOp struct {
+	val  time.Time
+	resp chan error
 }
 
 // LocalDB is the in memory implementation of the DataLayer interface
 type LocalDB struct {
 	timeStamp *time.Time
+	reads     chan readOp
+	writes    chan writeOp
 	//Should somehow make concurrency of this safe with the use of channels
 }
 
-// Set helps to set the db.timeStamp to the given time value
-func (db LocalDB) Set(t *TimeStamp) error {
+// StartDataLayer is an experimental function to use stateful goroutines
+func (db *LocalDB) StartDataLayer() {
+	for {
+		select {
+		case read := <-db.reads:
+			read.resp <- *db.timeStamp
+		case write := <-db.writes:
+			*db.timeStamp = write.val
+			write.resp <- nil
+		}
+	}
+}
+
+func (db *LocalDB) DBIsInitialized() bool {
 	if db.timeStamp == nil {
+		return false
+	}
+	return true
+}
+
+// Set helps to set the db.timeStamp to the given time value
+func (db *LocalDB) Set(t *TimeStamp) error {
+	if t == nil {
+		return errors.New("DB should not set uninitialized Timestamps")
+	}
+
+	if !db.DBIsInitialized() {
 		return errors.New("DB is not initialized")
 	}
-	*db.timeStamp = t.TimeValue
+
+	write := writeOp{
+		val:  t.TimeValue,
+		resp: make(chan error, 1),
+	}
+
+	db.writes <- write
+	err := <-write.resp
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 // Get gives back the currently stored timeStamp form our db
-func (db LocalDB) Get() (TimeStamp, error) {
+func (db *LocalDB) Get() (TimeStamp, error) {
 	var t TimeStamp
-	if db.timeStamp == nil {
+	if !db.DBIsInitialized() {
 		return t, errors.New("DB is not initialized")
 	}
-	t.TimeValue = *db.timeStamp
+
+	read := readOp{
+		resp: make(chan time.Time),
+	}
+
+	db.reads <- read
+	t.TimeValue = <-read.resp
+
 	return t, nil
 }
 
@@ -112,6 +168,7 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	db = NewDataLayer()
+	go db.StartDataLayer()
 
 	http.HandleFunc("/getTime", handleGetTime)
 	http.HandleFunc("/setTime", handleSetTime)
