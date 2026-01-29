@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -202,34 +201,34 @@ func RunClient() error {
 	data := strings.NewReader(strconv.FormatInt(timestamp.ConvertToUnix(), 10))
 	resp, err := client.Post("http://127.0.0.1:8080/setTime", "text/plain", data)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("setTime failed: %s", resp.Status)
+		return fmt.Errorf("setTime failed: %s", resp.Status)
 	}
 
 	// Get the stored timestamp
 	resp2, err := client.Get("http://127.0.0.1:8080/getTime")
 	if err != nil {
-		log.Fatalf("Request failed: %s", err)
+		return err
 	}
 	defer resp2.Body.Close()
 
 	if resp2.StatusCode != http.StatusOK {
-		log.Fatalf("getTime failed: %s", resp2.Status)
+		fmt.Errorf("setTime failed: %s", resp2.Status)
 	}
 
 	body, err := io.ReadAll(resp2.Body)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	var stored TimeStamp
 	received, err := strconv.ParseInt(strings.TrimSpace(string(body)), 10, 64)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	stored.SetFromUnix(received)
 
