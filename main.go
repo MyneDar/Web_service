@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// db is the storage solution of this web service. In our case it is an "in memory" solution
+// db is the storage solution of this web service. In our case it is an "in memory" solution.
 var DB DataLayer
 
 // TimeStamp contains a time.Time value called TimeValue. This struct helps to work with the json parsing in the communication
@@ -20,20 +20,22 @@ type TimeStamp struct {
 	TimeValue time.Time
 }
 
-// String gives back the underlying result of the of the TimeValue's String() function
+// String gives back the underlying result of the of the TimeValue's String() function.
 func (t *TimeStamp) String() string {
 	return t.TimeValue.String()
 }
 
+// ConvertToUnix implements unix conversion to unix format.
 func (t *TimeStamp) ConvertToUnix() int64 {
 	return t.TimeValue.UTC().Unix()
 }
 
+// SetFromUnix implements unix conversion from unix format and sets the timeValue to the result.
 func (t *TimeStamp) SetFromUnix(ux int64) {
 	t.TimeValue = time.Unix(ux, 0).UTC()
 }
 
-// DataLayer interface helps to implement a maintainable solution for the underlying data layer communication
+// DataLayer interface helps to implement a maintainable solution for the underlying data layer communication.
 type DataLayer interface {
 	Set(t *TimeStamp) error
 	Get() (TimeStamp, error)
@@ -63,7 +65,7 @@ type writeOp struct {
 	resp chan error
 }
 
-// LocalDB is the in memory implementation of the DataLayer interface
+// LocalDB is the in memory implementation of the DataLayer interface.
 type LocalDB struct {
 	timeStamp *time.Time
 	reads     chan readOp
@@ -71,7 +73,7 @@ type LocalDB struct {
 	//Should somehow make concurrency of this safe with the use of channels
 }
 
-// StartDataLayer is an experimental function to use stateful goroutines
+// StartDataLayer is an experimental function to use stateful goroutines.
 func (db *LocalDB) StartDataLayer() {
 	for {
 		select {
