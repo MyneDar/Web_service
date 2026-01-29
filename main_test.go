@@ -24,7 +24,26 @@ func TestTimeStampString(t *testing.T) {
 	if testTime.String() != timeStamp.String() {
 		t.Errorf("Expected that testTime's string value (%s) is equal to the String value of timeStamp: %s", testTime.String(), timeStamp.String())
 	}
+}
 
+func TestTimeStampUnixConversion(t *testing.T) {
+	timeStamp := TimeStamp{
+		TimeValue: time.Now(),
+	}
+
+	testUnix := timeStamp.TimeValue.UTC().Unix()
+	resultUnix := timeStamp.ConvertToUnix()
+
+	if resultUnix != testUnix {
+		t.Errorf("Expected that testUnix (%v) is equal to result_unix: %v", testUnix, resultUnix)
+	}
+
+	timeStamp.SetFromUnix(resultUnix)
+	testTime := time.Unix(testUnix, 0).UTC()
+
+	if testTime.String() != timeStamp.String() {
+		t.Errorf("Expected that testTime's string value (%s) is equal to the String value of timeStamp: %s", testTime.String(), timeStamp.String())
+	}
 }
 
 func TestNewDataLayer(t *testing.T) {
@@ -43,21 +62,38 @@ func TestNewDataLayer(t *testing.T) {
 	}
 }
 
-func TestLocalDBSetAndGet(t *testing.T) {
+func TestLocalDB(t *testing.T) {
+	var testDB DataLayer = &LocalDB{}
+
+	dbTimeStamp, err := testDB.Get()
+	if err == nil {
+		t.Errorf("Test DB should throw an error cause it is not initialized. Error: %s", err)
+	}
+
 	testTimeStamp := TimeStamp{
 		TimeValue: time.Now(),
 	}
 
-	testDB := NewDataLayer()
+	err = testDB.Set(&testTimeStamp)
+	if err == nil {
+		t.Errorf("Test DB should throw an error cause it is not initialized. Error: %s", err)
+	}
+
+	err = testDB.Set(nil)
+	if err == nil {
+		t.Errorf("Test DB should throw an error cause the given time stamp is nil pointer. Error: %s", err)
+	}
+
+	testDB = NewDataLayer()
 	go testDB.StartDataLayer()
 
-	err := testDB.Set(&testTimeStamp)
+	err = testDB.Set(&testTimeStamp)
 
 	if err != nil {
 		t.Errorf("Test DB should be initialized correctly. Error: %s", err)
 	}
 
-	dbTimeStamp, err := testDB.Get()
+	dbTimeStamp, err = testDB.Get()
 	if err != nil {
 		t.Errorf("Test DB should be initialized correctly. Error: %s", err)
 	}
@@ -66,4 +102,13 @@ func TestLocalDBSetAndGet(t *testing.T) {
 		t.Error("Expected that testTimeStamp: ", testTimeStamp, " should be equal to fbYimeStamp: ", dbTimeStamp)
 	}
 
+}
+
+func TestService(t *testing.T) {
+	StartWebService()
+
+	err := RunClient()
+	if err != nil {
+		t.Errorf("This run should work without errors. Error: %s", err)
+	}
 }
