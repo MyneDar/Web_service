@@ -217,7 +217,7 @@ func RunClient() error {
 	defer resp2.Body.Close()
 
 	if resp2.StatusCode != http.StatusOK {
-		fmt.Errorf("setTime failed: %s", resp2.Status)
+		return fmt.Errorf("setTime failed: %s", resp2.Status)
 	}
 
 	body, err := io.ReadAll(resp2.Body)
