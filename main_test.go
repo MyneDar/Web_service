@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"testing"
 	"time"
 )
@@ -102,6 +103,46 @@ func TestLocalDB(t *testing.T) {
 		t.Error("Expected that testTimeStamp: ", testTimeStamp, " should be equal to fbYimeStamp: ", dbTimeStamp)
 	}
 
+}
+
+// This test function should get a lot of improvement (and has its issues). I just wanted to put a test function that helps to check how the asyncron communication is handled.
+func TestLocalDBAsynchrounousWork(t *testing.T) {
+	testDB := NewDataLayer()
+	go testDB.StartDataLayer()
+
+	for range 10 {
+		go func() {
+			for {
+				testTimeStamp := TimeStamp{
+					TimeValue: time.Now(),
+				}
+
+				err := testDB.Set(&testTimeStamp)
+				if err != nil {
+					log.Printf("Error during set operation: %s", err)
+				}
+
+				log.Printf("Value set: %s", testTimeStamp.String())
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+
+	for range 100 {
+		go func() {
+			for {
+				dbTimeStamp, err := testDB.Get()
+				if err != nil {
+					log.Printf("Error during set operation: %s", err)
+				}
+
+				log.Printf("Value got: %s", dbTimeStamp.String())
+				time.Sleep(time.Millisecond)
+			}
+		}()
+	}
+
+	time.Sleep(2 * time.Second)
 }
 
 func TestService(t *testing.T) {
