@@ -52,9 +52,12 @@ func NewDataLayer() DataLayer {
 	return &db
 }
 
+// readOp helps handle the asynchronous communication of read operations between the database and the read task.
 type readOp struct {
 	resp chan time.Time
 }
+
+// writeOp helps to handle the asynchronous communication of write operations between the database and the write task.
 type writeOp struct {
 	val  time.Time
 	resp chan error
@@ -81,6 +84,7 @@ func (db *LocalDB) StartDataLayer() {
 	}
 }
 
+// DBIsInitialized give back the a boolean value about that the DB is initialized or not.
 func (db *LocalDB) DBIsInitialized() bool {
 	if db.timeStamp == nil {
 		return false
@@ -160,7 +164,7 @@ func handleSetTime(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// getTimeHandler sends back the stored time in json text format
+// getTimeHandler sends back the stored time in json text format.
 func handleGetTime(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -179,6 +183,7 @@ func handleGetTime(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+// StarWebService constructs a web server and starts it.
 func StartWebService() {
 	DB = NewDataLayer()
 	go DB.StartDataLayer()
@@ -193,6 +198,7 @@ func StartWebService() {
 	time.Sleep(200 * time.Millisecond)
 }
 
+// RunClient constructs a web client and sends the set and get requests.
 func RunClient() error {
 	client := &http.Client{Timeout: 2 * time.Second}
 	timestamp := TimeStamp{TimeValue: time.Now()}
